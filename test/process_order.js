@@ -126,14 +126,19 @@ describe("Order Processing API", () => {
 	})
 
 	describe("Driver to Complete the Order", () => {
-		it('advances the order to Completed status', (done) => {
-			chai.request(API_URL)
-				.put(`/orders/${orderToComplete.id}/complete`)
-				.end((err, res) => {
-					res.should.have.status(200);
-					res.body['status'].should.match(/completed/i)
-					done();
-				})
+		context('when the order is taken', () => {
+			it('advances the order to Completed status', (done) => {
+				chai.request(API_URL)
+					.put(`/orders/${orderToComplete.id}/complete`)
+					.end((err, res) => {
+						res.should.have.status(200);
+						res.body['status'].should.match(/completed/i)
+						done();
+					})
+			})
+		})
+		context('when the order is not taken', () => {
+			it('the order cannot be completed')
 		})
 		context('once completed', () => {
 			it('the order cannot be cancelled', (done) => {
@@ -153,18 +158,33 @@ describe("Order Processing API", () => {
 					})
 			})
 		})
+		context('if order not found', () => {
+			it('returns a client error', (done) => {
+				chai.request(API_URL)
+					.put('/orders/0/complete')
+					.end((err, res) => {
+						res.status.should.be.within(400, 499);
+						done();
+					})
+			})
+		})
 	})
 
 	describe("Cancel Order", () => {
-		it('advances the order to Cancelled status', (done) => {
-			orderToCancel = newOrders[1];
-			chai.request(API_URL)
-				.put(`/orders/${orderToCancel.id}/cancel`)
-				.end((err, res) => {
-					res.should.have.status(200);
-					res.body['status'].should.match(/cancelled/i)
-					done();
-				})
+		context('when order is taken', () => {
+			it('advances the order to Cancelled status', (done) => {
+				orderToCancel = newOrders[1];
+				chai.request(API_URL)
+					.put(`/orders/${orderToCancel.id}/cancel`)
+					.end((err, res) => {
+						res.should.have.status(200);
+						res.body['status'].should.match(/cancelled/i)
+						done();
+					})
+			})
+		})
+		context('when order is not taken', () => {
+			it('advances the order to Cancelled status')
 		})
 		context('once cancelled', () => {
 			it('the order cannot be completed', (done) => {
@@ -180,6 +200,16 @@ describe("Order Processing API", () => {
 					.put(`/orders/${orderToCancel.id}/take`)
 					.end((err, res) => {
 						res.should.have.status(422);
+						done();
+					})
+			})
+		})
+		context('if order not found', () => {
+			it('returns a client error', (done) => {
+				chai.request(API_URL)
+					.put('/orders/0/cancel')
+					.end((err, res) => {
+						res.status.should.be.within(400, 499);
 						done();
 					})
 			})
