@@ -1,5 +1,5 @@
 require('it-each')();
-const { chai, getPlaces, calculateFareRange } = require('./helper.js');
+const { chai, getPlaces, calculateFare, localTime, sometimeTomorrow, _ } = require('./helper.js');
 const API_URL = process.env.API_URL; // set API_URL based on environment variable
 
 var newOrders = [];
@@ -15,7 +15,7 @@ before(() => {
 
 describe("Order Processing API", () => {
     describe("Place Order", () => {
-		context('delivery in Hong Kong', () => {
+		context('immediate delivery in Hong Kong', () => {
 			it('creates a new order', (done) => {
 				chai.request(API_URL)
 					.post('/orders')
@@ -23,20 +23,21 @@ describe("Order Processing API", () => {
 					.send({"stops": getPlaces('HK')})
 					.end((err, res) => {
 						res.should.have.status(201);
-						newOrders.push(res.body);
+						newOrders.push(_.extend(res.body, {timezone: 'Asia/Hong_Kong'}));
 						done();
 					})
 			})
 		})
-		context('delivery in Ho Chi Minh City', () => {
+		context('scheduled delivery in Ho Chi Minh City', () => {
 			it('creates a new order', (done) => {
 				chai.request(API_URL)
 					.post('/orders')
 					.set('content-type', 'application/json; charset=utf-8')
+					.send({'orderAt': sometimeTomorrow(), "stops": getPlaces('HCMC')})
 					.send({"stops": getPlaces('HCMC')})
 					.end((err, res) => {
 						res.should.have.status(201);
-						newOrders.push(res.body);
+						newOrders.push(_.extend(res.body, {timezone: 'Asia/Ho_Chi_Minh'}));
 						done();
 					})
 			})
@@ -61,31 +62,40 @@ describe("Order Processing API", () => {
 				order['totalDistanceInMeters'] = order.drivingDistancesInMeters.reduce((a, sum) => a + sum);
 				order['totalDistanceInMeters'].should.be.gt(0);
 			})
-			it.each(newOrders, 'calculates fare', (order) => {
-				var fareRecorded = Number(order.fare.amount)
-				var [normalFare, nightFare] = calculateFareRange(order.totalDistanceInMeters)
-				fareRecorded.should.be.within(normalFare - 1, nightFare + 1)
-			})
 		})
     })
 
     describe("Fetch Order Details", () => {
 		context('for each order fetched', () => {
-			it.each(newOrders, 'provides distances, fare, and status', (order, done) => {
+			it.each(newOrders, 'provides status', (order, done) => {
 				chai.request(API_URL)
 					.get(`/orders/${order.id}`)
 					.end((err, res) => {
 						res.should.have.status(200);
 						res.body.id.should.eq(order.id)
-						// check count of stops and distances
+						res.body.status.should.match(/assigning/i);
+						done();
+					})
+			})
+			it.each(newOrders, 'provides distances', (order, done) => {
+				chai.request(API_URL)
+					.get(`/orders/${order.id}`)
+					.end((err, res) => {
 						var numStops = res.body.stops.length;
 						var numDistances = res.body.drivingDistancesInMeters.length;
 						numStops.should.be.gte(2);
 						numDistances.should.eq(numStops-1);
 						numDistances.should.eq(order.drivingDistancesInMeters.length);
-						// check fare amount 
-						Math.abs(Number(res.body.fare.amount) - Number(order.fare.amount)).should.be.lt(1);
-						res.body.status.should.match(/assigning/i);
+						done();
+					})
+			})
+			it.each(newOrders, 'calculates fare', (order, done) => {
+				var fareRecorded = Number(order.fare.amount);
+				chai.request(API_URL)
+					.get(`/orders/${order.id}`)
+					.end((err, res) => {
+						fareExpected = calculateFare(order.totalDistanceInMeters, localTime(res.body.orderDateTime, order.timezone));
+						fareRecorded.should.be.within(fareExpected - 0.5, fareExpected + 0.5)
 						done();
 					})
 			})
