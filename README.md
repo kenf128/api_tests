@@ -100,17 +100,4 @@ Testing http://localhost:51544/v1
 
   16 passing (603ms)
   1 pending
-
-
-The calculated fare amount is not as expected at some hours. For instance, the higher fare should be in effect at 23pm local time but the lower fare is recorded in the order. The reverse is true at 10am. See debug output below:
-
-Order time: 2019-08-10T15:55:11Z (23:55pm HK time)
-Fare expected: 197.76
-Fare recorded: 124.85
-
-Order time: 2019-08-10T02:24:34Z (10:24am HK time)
-Fare expected: 2631.45
-Fare recorded: 4208.32
-
-Until this potential issue is resolved, this PR should not be merged.
 ```
