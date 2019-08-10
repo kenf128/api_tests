@@ -1,4 +1,5 @@
 const chai = require('chai');
+const _ = require('lodash');
 const chaiHttp = require('chai-http');
 chai.should();
 chai.use(chaiHttp);
@@ -16,16 +17,27 @@ module.exports = {
 		var num_places = 2 + Math.round(Math.random() * (PLACES[city].length - 2))
 		return PLACES[city].slice(0, num_places) 
 	},
-	calculateFareRange: (distanceMeters) => {
-		var distanceOver2km = distanceMeters - 2000.0;
-		var baseFare = { low: 20, high: 30 };
-		var incrementFare = { low: 5, high: 8 };
-		if (distanceOver2km <= 0) {
-			return [ basePrice.low, basePrice.high ]
+	localTime: (time, timezone) => {
+		return new Date(new Date(time).toLocaleString('en-US', {timeZone: timezone})).toLocaleString();
+	},
+	sometimeTomorrow: () => {
+		var d = new Date();
+		start = d.setHours(0,0,0);
+		end = d.setHours(23,59,59);
+		return new Date(start + Math.random() * (end - start)).toISOString();
+	},
+	calculateFare: (distanceMeters, localTime) => {
+		var baseFare, incrementalFare;
+		if (_.inRange(new Date(localTime).getHours(), 5, 22)) {
+			baseFare = 20;
+			incrementalFare = 5;
 		}
 		else {
-			return [ baseFare.low + distanceOver2km / 200 * incrementFare.low, baseFare.high + distanceOver2km / 200 * incrementFare.high ]
+			baseFare = 30;
+			incrementalFare = 8;
 		}
+		return baseFare + incrementalFare * Math.max(distanceMeters - 2000, 0) / 200.0;
 	},
-	chai
+	chai,
+	_
 }

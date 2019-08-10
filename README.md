@@ -30,19 +30,56 @@ Testing http://localhost:51544/v1
 
   Order Processing API
     Place Order
-      delivery in Hong Kong
-        ✓ creates a new order (1006ms)
-      delivery in Ho Chi Minh City
-        ✓ creates a new order (112ms)
+      immediate delivery in Hong Kong
+        ✓ creates a new order (1356ms)
+      scheduled delivery in Ho Chi Minh City
+        ✓ creates a new order (1213ms)
       delivery in a non-serviced country
-        ✓ does not create an order (110ms)
+        ✓ does not create an order (171ms)
       for each order created
         ✓ assigns a numeric order id - 2/2
         ✓ calculates distances - 2/2
-        ✓ calculates fare - 2/2
     Fetch Order Details
       for each order fetched
-        ✓ provides distances, fare, and status - 2/2
+        ✓ provides status - 2/2
+        ✓ provides distances - 2/2
+        1) calculates fare - 1/2
+
+
+  7 passing (3s)
+  1 failing
+
+  1) Order Processing API
+       Fetch Order Details
+         for each order fetched
+           calculates fare - 1/2:
+     Uncaught AssertionError: expected 1055.85 to be within 1686.86..1687.86
+      at chai.request.get.end (test/process_order.js:99:30)
+      at Test.Request.callback (node_modules/superagent/lib/node/index.js:716:12)
+      at parser (node_modules/superagent/lib/node/index.js:916:18)
+      at IncomingMessage.res.on (node_modules/superagent/lib/node/parsers/json.js:19:7)
+      at endReadableNT (_stream_readable.js:1129:12)
+      at process._tickCallback (internal/process/next_tick.js:63:19)
+
+
+Testing http://localhost:51544/v1
+
+  Order Processing API
+    Place Order
+      immediate delivery in Hong Kong
+        ✓ creates a new order (256ms)
+      scheduled delivery in Ho Chi Minh City
+        ✓ creates a new order (154ms)
+      delivery in a non-serviced country
+        ✓ does not create an order (73ms)
+      for each order created
+        ✓ assigns a numeric order id - 2/2
+        ✓ calculates distances - 2/2
+    Fetch Order Details
+      for each order fetched
+        ✓ provides status - 2/2
+        ✓ provides distances - 2/2
+        - calculates fare
       if order not found
         ✓ returns a client error
     Driver to Take the Order
@@ -61,5 +98,19 @@ Testing http://localhost:51544/v1
         ✓ the order cannot be taken
 
 
-  16 passing (1s)
+  16 passing (603ms)
+  1 pending
+
+
+The calculated fare amount is not as expected at some hours. For instance, the higher fare should be in effect at 23pm local time but the lower fare is recorded in the order. The reverse is true at 10am. See debug output below:
+
+Order time: 2019-08-10T15:55:11Z (23:55pm HK time)
+Fare expected: 197.76
+Fare recorded: 124.85
+
+Order time: 2019-08-10T02:24:34Z (10:24am HK time)
+Fare expected: 2631.45
+Fare recorded: 4208.32
+
+Until this potential issue is resolved, this PR should not be merged.
 ```
